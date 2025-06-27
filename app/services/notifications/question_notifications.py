@@ -6,6 +6,25 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def format_respondent_info(respondent) -> str:
+    """
+    Форматирует информацию о респонденте с учетом роли
+    """
+    if not respondent:
+        return "HR"
+    
+    # Определяем роль
+    role_text = "HR" if respondent.role == "hr" else "Администратора"
+    
+    # Формируем имя - для обеих ролей приоритет отдается username
+    name_info = ""
+    if respondent.username and respondent.username.strip():
+        name_info = f" (@{respondent.username.strip()})"
+    elif respondent.fullname and respondent.fullname.strip():
+        name_info = f" ({respondent.fullname.strip()})"
+    
+    return f"{role_text}{name_info}"
+
 class QuestionNotificationService(BaseNotificationService):
     """Сервис уведомлений о вопросах"""
     
@@ -64,20 +83,16 @@ class QuestionNotificationService(BaseNotificationService):
                 logger.warning(f"Question {question.id} has no user_id for answer notification")
                 return False
             
-            # Формируем текст уведомления
-            hr_mention = self._format_user_mention(
-                hr_user.telegram_id,
-                hr_user.username,
-                hr_user.fullname
-            )
+            # Формируем информацию о респонденте с учетом роли
+            respondent_info = format_respondent_info(hr_user)
             
             text = (
                 f"✅ <b>Получен ответ на ваш вопрос #{question.id}</b>\n\n"
-                f"👤 Ответил: {hr_mention}\n"
+                f"👤 Ответил: {respondent_info}\n"
                 f"📅 Дата ответа: {answer.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
                 f"💬 <b>Ваш вопрос:</b>\n"
                 f"<i>{question.message[:200]}{'...' if len(question.message) > 200 else ''}</i>\n\n"
-                f"📝 <b>Ответ HR:</b>\n"
+                f"📝 <b>Ответ {respondent_info}:</b>\n"
                 f"<i>{answer.message}</i>"
             )
             

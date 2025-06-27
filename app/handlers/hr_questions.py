@@ -21,6 +21,25 @@ hr_questions_router = Router(name="hr_questions")
 hr_questions_router.callback_query.middleware(HROrAdminAccess())
 hr_questions_router.message.middleware(HROrAdminAccess())
 
+def format_respondent_info(respondent) -> str:
+    """
+    Форматирует информацию о респонденте с учетом роли
+    """
+    if not respondent:
+        return "HR"
+    
+    # Определяем роль
+    role_text = "HR" if respondent.role == "hr" else "Администратора"
+    
+    # Формируем имя - для обеих ролей приоритет отдается username
+    name_info = ""
+    if respondent.username and respondent.username.strip():
+        name_info = f" (@{respondent.username.strip()})"
+    elif respondent.fullname and respondent.fullname.strip():
+        name_info = f" ({respondent.fullname.strip()})"
+    
+    return f"{role_text}{name_info}"
+
 class HRQuestionStates(StatesGroup):
     waiting_for_answer = State()
     confirming_answer = State()
@@ -162,13 +181,8 @@ async def show_questions_by_status(
             # Добавляем информацию о том, кто ответил
             answered_by = ""
             if question.answers and question.answers[0].respondent:
-                respondent = question.answers[0].respondent
-                if respondent.username and respondent.username.strip():
-                    answered_by = f"\n👤 Ответил: @{respondent.username.strip()}"
-                elif respondent.fullname and respondent.fullname.strip():
-                    answered_by = f"\n👤 Ответил: {respondent.fullname.strip()}"
-                else:
-                    answered_by = f"\n👤 Ответил: HR (ID: {respondent.telegram_id})"
+                respondent_info = format_respondent_info(question.answers[0].respondent)
+                answered_by = f"\n👤 Ответил: {respondent_info}"
             
             message_lines.append(
                 f"{status_emoji} <b>Вопрос #{question.id}</b>{author_info}\n"
@@ -302,12 +316,10 @@ async def take_question_in_progress(
                 # Показываем ответы, если есть
                 if question.answers:
                     for answer in question.answers:
-                        hr_username = ""
-                        if answer.respondent and answer.respondent.username and answer.respondent.username.strip():
-                            hr_username = f" (@{answer.respondent.username.strip()})"
+                        respondent_info = format_respondent_info(answer.respondent)
                         
                         message_text += (
-                            f"\n\n📝 <b>Ответ HR{hr_username}:</b>\n"
+                            f"\n\n📝 <b>Ответ {respondent_info}:</b>\n"
                             f"<i>{answer.message}</i>\n"
                             f"📅 {answer.created_at.strftime('%d.%m.%Y %H:%M')}"
                         )
@@ -394,12 +406,10 @@ async def view_question_detail(
         # Показываем ответы, если есть
         if question.answers:
             for answer in question.answers:
-                hr_username = ""
-                if answer.respondent and answer.respondent.username and answer.respondent.username.strip():
-                    hr_username = f" (@{answer.respondent.username.strip()})"
+                respondent_info = format_respondent_info(answer.respondent)
                 
                 message_text += (
-                    f"\n\n📝 <b>Ответ HR{hr_username}:</b>\n"
+                    f"\n\n📝 <b>Ответ {respondent_info}:</b>\n"
                     f"<i>{answer.message}</i>\n"
                     f"📅 {answer.created_at.strftime('%d.%m.%Y %H:%M')}"
                 )
@@ -480,12 +490,10 @@ async def hr_question_from_notification(
         if question.answers:
 
             for answer in question.answers:
-                hr_username = ""
-                if answer.respondent and answer.respondent.username and answer.respondent.username.strip():
-                    hr_username = f" (@{answer.respondent.username.strip()})"
+                respondent_info = format_respondent_info(answer.respondent)
                 
                 message_text += (
-                    f"\n\n📝 <b>Ответ HR{hr_username}:</b>\n"
+                    f"\n\n📝 <b>Ответ {respondent_info}:</b>\n"
                     f"<i>{answer.message}</i>\n"
                     f"📅 {answer.created_at.strftime('%d.%m.%Y %H:%M')}"
                 )

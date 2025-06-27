@@ -16,6 +16,25 @@ from ..keyboards.main_menu import MainKeyboard
 logger = logging.getLogger(__name__)
 router = Router(name="questions_handlers")
 
+def format_respondent_info(respondent) -> str:
+    """
+    Форматирует информацию о респонденте с учетом роли
+    """
+    if not respondent:
+        return "HR"
+    
+    # Определяем роль
+    role_text = "HR" if respondent.role == "hr" else "Администратора"
+    
+    # Формируем имя - для обеих ролей приоритет отдается username
+    name_info = ""
+    if respondent.username and respondent.username.strip():
+        name_info = f" (@{respondent.username.strip()})"
+    elif respondent.fullname and respondent.fullname.strip():
+        name_info = f" ({respondent.fullname.strip()})"
+    
+    return f"{role_text}{name_info}"
+
 class QuestionStates(StatesGroup):
     waiting_for_question = State()
     confirming_question = State()
@@ -438,18 +457,11 @@ async def show_question_detail(
     if question.answers:
         message_text += "\n\n📝 <b>Ответы:</b>"
         for answer in question.answers:
-            # Определяем имя HR сотрудника
-            hr_name = "HR"
-            if answer.respondent:
-                if answer.respondent.username and answer.respondent.username.strip():
-                    hr_name = f"@{answer.respondent.username.strip()}"
-                elif answer.respondent.fullname and answer.respondent.fullname.strip():
-                    hr_name = answer.respondent.fullname.strip()
-                else:
-                    hr_name = f"HR (ID: {answer.respondent.telegram_id})"
+            # Определяем информацию о респонденте с учетом роли
+            respondent_info = format_respondent_info(answer.respondent)
             
             message_text += (
-                f"\n\n💬 <b>Ответ от {hr_name}:</b>\n"
+                f"\n\n💬 <b>Ответ от {respondent_info}:</b>\n"
                 f"<i>{answer.message}</i>\n"
                 f"📅 {answer.created_at.strftime('%d.%m.%Y %H:%M')}"
             )
