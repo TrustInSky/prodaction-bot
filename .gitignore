@@ -1,0 +1,79 @@
+# === КРИТИЧЕСКИ ВАЖНО - НЕ ПЕРЕДАВАТЬ! ===
+.env
+.env.*
+!.env.example
+
+# Базы данных с реальными данными
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Логи с потенциально чувствительной информацией
+logs/
+*.log
+
+# Временные файлы
+temp/
+tmp/
+*.tmp
+
+# Кэш и сессии
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Виртуальное окружение
+venv/
+env/
+ENV/
+.venv/
+
+# IDE файлы
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+*.bak
+
+# Архивы проекта
+*.zip
+*.7z
+*.tar.gz
+*.rar
+
+# Миграции (могут содержать данные)
+migrations/versions/*.py
+!migrations/versions/.gitkeep
+
+# Бэкапы
+backup/
+backups/
+*.backup
+
+# Конфиденциальные документы
+SECRETS.md
+PASSWORDS.txt
+TOKENS.txt
+
+# === РАЗРЕШЕНО К ПЕРЕДАЧЕ ===
+# app/ - весь код приложения
+# migrations/env.py - настройки миграций
+# migrations/script.py.mako - шаблон миграций
+# requirements.txt - зависимости
+# README.md - документация
+# PROJECT_ANALYSIS.md - анализ проекта
+# DEPLOYMENT.md - инструкция развертывания
+# ADMIN_GUIDE.md - руководство администратора
+# alembic.ini - конфигурация миграций
+# main.py - точка входа 
