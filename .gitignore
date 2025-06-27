@@ -66,6 +66,12 @@ SECRETS.md
 PASSWORDS.txt
 TOKENS.txt
 
+# Все тестовые файлы (содержат реальные данные)
+test_*.py
+debug_*.py
+create_test_user.py
+tests/
+
 # === РАЗРЕШЕНО К ПЕРЕДАЧЕ ===
 # app/ - весь код приложения
 # migrations/env.py - настройки миграций
