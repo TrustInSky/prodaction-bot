@@ -84,7 +84,8 @@ async def view_order_details(
     
     order = order_details['order']
     items = order_details['items']
-    user = order.user  # user доступен через связь в модели Order
+    # Получаем пользователя через сервис, чтобы избежать проблем с lazy loading
+    user = await user_service.get_user_by_telegram_id(order.user_id)
     
     # Получаем информацию о HR-пользователе, если заказ обрабатывается
     hr_user = None
@@ -107,7 +108,7 @@ async def view_order_details(
     )
 
 @management_router.callback_query(F.data.startswith("update_status_"))
-async def update_order_status(callback: CallbackQuery, order_service: OrderService):
+async def update_order_status(callback: CallbackQuery, order_service: OrderService, user_service: UserService):
     """Обновляет статус заказа - рефакторинг: aiogram3-di"""
     await safe_callback_answer(callback)
     
@@ -162,10 +163,10 @@ async def update_order_status(callback: CallbackQuery, order_service: OrderServi
         # Если заказ взят в работу, перенаправляем в соответствующий раздел
         if status == 'processing':
             # Перенаправляем к заказу в разделе "В работе"
-            await _refresh_order_details(callback, order_id, "processing", order_service)
+            await _refresh_order_details(callback, order_id, "processing", order_service, user_service)
         else:
             # Возвращаемся к деталям заказа с обновленным статусом
-            await _refresh_order_details(callback, order_id, status_list, order_service)
+            await _refresh_order_details(callback, order_id, status_list, order_service, user_service)
     else:
         await safe_callback_answer(callback, "❌ Произошла ошибка при обновлении статуса заказа.")
 
@@ -244,7 +245,8 @@ async def _refresh_order_details(
     callback: CallbackQuery, 
     order_id: int, 
     status_list: str, 
-    order_service: OrderService
+    order_service: OrderService,
+    user_service: UserService
 ):
     """Обновляет детали заказа после изменения статуса"""
     try:
@@ -255,15 +257,14 @@ async def _refresh_order_details(
             await safe_callback_answer(callback, "❌ Заказ не найден")
             return
         
-        user = order.user
+        # Получаем пользователя через сервис, чтобы избежать проблем с lazy loading
+        user = await user_service.get_user_by_telegram_id(order.user_id)
         items = order.items
         
         # Получаем информацию о HR-пользователе, если заказ обрабатывается
         hr_user = None
         if order.hr_user_id:
-            # Используем тот же order_service для получения пользователя
-            # (можно было бы инжектить user_service, но для простоты используем существующий)
-            pass  # hr_user останется None, но это не критично
+            hr_user = await user_service.get_user_by_telegram_id(order.hr_user_id)
         
         # Формируем сообщение с деталями заказа
         message_text = format_order_details_message(order, user, items, hr_user)

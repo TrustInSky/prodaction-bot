@@ -15,6 +15,7 @@ from app.config import Config
 from app.middlewares.database import DatabaseMiddleware, set_database_middleware
 from app.middlewares.group_membership import GroupMembershipMiddleware
 from app.scheduler import setup_scheduler, shutdown_scheduler
+# Импорт create_aiohttp_session удален из-за проблем совместимости
 from app.catalog.catalog_router import router as catalog_router
 from app.handlers.main_menu import router as main_menu_router
 from app.handlers.simple_admin import router as admin_router
@@ -145,7 +146,7 @@ async def main() -> NoReturn:
         # Настраиваем базу данных
         async_session, engine = await setup_database(config)
         
-        # Создаем бота и диспетчер
+        # Создаем бота и диспетчер с улучшенными настройками
         bot = Bot(
             token=config.BOT_TOKEN,
             default=DefaultBotProperties(parse_mode=ParseMode.HTML)

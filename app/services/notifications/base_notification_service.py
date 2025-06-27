@@ -6,15 +6,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 from datetime import datetime, time, timedelta
 import asyncio
+from ...utils.telegram_client import SafeTelegramClient
+from ...config import Config
 
 logger = logging.getLogger(__name__)
 
 class BaseNotificationService(ABC):
     """Базовый класс для всех сервисов уведомлений"""
     
-    def __init__(self, session: AsyncSession, bot: Bot):
+    def __init__(self, session: AsyncSession, bot: Bot, config: Config = None):
         self.session = session
         self.bot = bot
+        # Создаем безопасный клиент для отправки сообщений
+        if config:
+            self.safe_client = SafeTelegramClient(bot, config)
+        else:
+            # Fallback для обратной совместимости
+            from ...config import Config
+            self.safe_client = SafeTelegramClient(bot, Config())
         
     @abstractmethod
     async def send_notification(self, **kwargs) -> bool:
@@ -58,21 +67,19 @@ class BaseNotificationService(ABC):
         reply_markup: Optional[InlineKeyboardMarkup] = None
     ) -> bool:
         """
-        Отправить одно сообщение пользователю
+        Отправить одно сообщение пользователю с безопасной обработкой ошибок
         """
-        try:
-            await self.bot.send_message(
-                chat_id=user_id,
-                text=text,
-                reply_markup=reply_markup,
-                parse_mode='HTML'
-            )
-            logger.info(f"Notification sent successfully to user {user_id}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to send notification to user {user_id}: {e}")
-            return False
+        success, message, error = await self.safe_client.send_message_safe(
+            chat_id=user_id,
+            text=text,
+            reply_markup=reply_markup,
+            parse_mode='HTML'
+        )
+        
+        if not success:
+            logger.error(f"Failed to send notification to user {user_id}: {error}")
+        
+        return success
     
     def _is_working_day(self, date: datetime = None) -> bool:
         """

@@ -111,20 +111,28 @@ class OrderNotificationService(BaseNotificationService):
                 ]
             ])
             
-            # Отправляем уведомления всем HR
-            success_count = 0
-            for user_id in hr_user_ids:
-                try:
-                    await self.bot.send_message(
-                        chat_id=user_id,
-                        text=text,
-                        reply_markup=keyboard,
-                        parse_mode='HTML'
-                    )
-                    success_count += 1
+            # Отправляем уведомления всем HR параллельно с безопасным клиентом
+            message_data_list = [
+                {
+                    'chat_id': user_id,
+                    'text': text,
+                    'reply_markup': keyboard,
+                    'parse_mode': 'HTML'
+                }
+                for user_id in hr_user_ids
+            ]
+            
+            # Используем batch отправку с ограничением на 3 одновременных запроса
+            results = await self.safe_client.send_messages_batch(message_data_list, max_concurrent=3)
+            
+            success_count = sum(1 for success, _ in results.values() if success)
+            
+            # Логируем результаты для каждого пользователя
+            for user_id, (success, error) in results.items():
+                if success:
                     logger.info(f"Notification sent successfully to HR user {user_id}")
-                except Exception as e:
-                    logger.error(f"Failed to send notification to HR user {user_id}: {e}")
+                else:
+                    logger.error(f"Failed to send notification to HR user {user_id}: {error}")
             
             logger.info(f"Order {order.id} notification sent to {success_count}/{len(hr_user_ids)} HR users")
             return success_count > 0

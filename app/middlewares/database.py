@@ -71,7 +71,7 @@ class DatabaseMiddleware(BaseMiddleware):
         async with self.session_factory() as session:
             try:
                 # Создаем экземпляры сервисов для этого запроса
-                order_notification_service = OrderNotificationService(session, self.bot)
+                order_notification_service = OrderNotificationService(session, self.bot, self.config)
                 question_service = QuestionService(session)
                 user_service = UserService(session)
                 catalog_service = CatalogService(session)
@@ -96,7 +96,7 @@ class DatabaseMiddleware(BaseMiddleware):
                 
                 tpoints_activity_service = TPointsActivityService(session)
                 auto_events_service = AutoEventsService(session, self.bot)
-                question_notification_service = QuestionNotificationService(session, self.bot)
+                question_notification_service = QuestionNotificationService(session, self.bot, self.config)
                 user_repository = UserRepository(session)
                 
                 # Добавляем все сервисы в data для aiogram3-di
@@ -179,7 +179,7 @@ class DatabaseMiddleware(BaseMiddleware):
                     # Создаём репозитории для передачи в сервис
                     order_repo = OrderRepository(session)
                     user_repo = UserRepository(session)
-                    notification_service = OrderNotificationService(session, self.bot)
+                    notification_service = OrderNotificationService(session, self.bot, self.config)
                     
                     # Делегируем отправку уведомления сервису с репозиториями
                     await notification_service.send_pending_order_created_notification(
@@ -197,7 +197,7 @@ class DatabaseMiddleware(BaseMiddleware):
             async with self.session_factory() as session:
                 try:
                     from ..services.notifications.order_notifications import OrderNotificationService
-                    notification_service = OrderNotificationService(session, self.bot)
+                    notification_service = OrderNotificationService(session, self.bot, self.config)
                     
                     # Вызываем соответствующий метод сервиса для уведомления о статусе
                     await notification_service.send_status_change_notification(
@@ -221,7 +221,7 @@ class DatabaseMiddleware(BaseMiddleware):
                     
                     order_repo = OrderRepository(session)
                     user_repo = UserRepository(session)
-                    notification_service = OrderNotificationService(session, self.bot)
+                    notification_service = OrderNotificationService(session, self.bot, self.config)
                     
                     # Получаем заказ и пользователя
                     order = await order_repo.get_order_with_details(notification_data['data']['order_id'])
