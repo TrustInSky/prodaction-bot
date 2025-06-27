@@ -242,6 +242,15 @@ async def start_answering_question(
             await safe_callback_answer(callback, "❌ Вопрос не найден", show_alert=True)
             return
         
+        # Проверяем, что на вопрос еще можно ответить
+        if question.status == 'answered':
+            await safe_callback_answer(callback, "❌ На этот вопрос уже получен ответ", show_alert=True)
+            return
+        
+        if question.answers:
+            await safe_callback_answer(callback, "❌ На этот вопрос уже есть ответ", show_alert=True)
+            return
+        
         # Сохраняем ID вопроса в состоянии
         await state.update_data(question_id=question_id)
         await state.set_state(HRQuestionStates.waiting_for_answer)
@@ -274,6 +283,21 @@ async def take_question_in_progress(
     question_id = int(callback.data.split(":")[1])
     
     try:
+        # Сначала проверяем актуальный статус вопроса
+        question = await question_service.get_question_by_id(question_id)
+        
+        if not question:
+            await safe_callback_answer(callback, "❌ Вопрос не найден", show_alert=True)
+            return
+        
+        if question.status == 'answered':
+            await safe_callback_answer(callback, "❌ Этот вопрос уже получил ответ", show_alert=True)
+            return
+        
+        if question.status == 'in_progress':
+            await safe_callback_answer(callback, "❌ Этот вопрос уже в работе", show_alert=True)
+            return
+        
         success = await question_service.update_question_status(question_id, 'in_progress')
         
         if success:
@@ -474,7 +498,7 @@ async def hr_question_from_notification(
             'answered': 'Отвечен'
         }.get(question.status, 'Неизвестно')
         
-        # Информация об авторе (анонимно)
+        # Информация об авторе (анонимно для уведомлений)
         author_info = "Анонимный пользователь"
         
         message_text = (
@@ -488,7 +512,6 @@ async def hr_question_from_notification(
         
         # Показываем ответы, если есть
         if question.answers:
-
             for answer in question.answers:
                 respondent_info = format_respondent_info(answer.respondent)
                 
@@ -498,24 +521,42 @@ async def hr_question_from_notification(
                     f"📅 {answer.created_at.strftime('%d.%m.%Y %H:%M')}"
                 )
         
-        # Создаём клавиатуру действий
+        # Создаём клавиатуру действий с проверкой статуса
         kb = InlineKeyboardBuilder()
         
-        if question.status == 'new':
+        # Если вопрос уже отвечен, показываем информацию об этом
+        if question.status == 'answered':
+            message_text += f"\n\n✅ <b>Этот вопрос уже получил ответ</b>"
+            
+            # Только кнопки навигации для отвеченных вопросов
             kb.row(InlineKeyboardButton(
-                text="⏳ Взять в работу",
-                callback_data=f"hr_question_take:{question.id}"
+                text="📋 Все вопросы",
+                callback_data="menu:questions"
+            ))
+        else:
+            # Для неотвеченных вопросов показываем кнопки действий
+            if question.status == 'new':
+                kb.row(InlineKeyboardButton(
+                    text="⏳ Взять в работу",
+                    callback_data=f"hr_question_take:{question.id}"
+                ))
+            
+            # Кнопка ответить только если еще нет ответов
+            if question.status in ['new', 'in_progress'] and not question.answers:
+                kb.row(InlineKeyboardButton(
+                    text="📝 Ответить",
+                    callback_data=f"hr_question_answer:{question.id}"
+                ))
+            
+            kb.row(InlineKeyboardButton(
+                text="📋 Все вопросы",
+                callback_data="menu:questions"
             ))
         
-        if question.status in ['new', 'in_progress'] and not question.answers:
-            kb.row(InlineKeyboardButton(
-                text="📝 Ответить",
-                callback_data=f"hr_question_answer:{question.id}"
-            ))
-        
+        # Всегда добавляем кнопку пропустить для уведомления
         kb.row(InlineKeyboardButton(
-            text="↩️ Назад к списку",
-            callback_data="menu:questions"
+            text="⏭️ Пропустить уведомление",
+            callback_data=f"question_skip:{question.id}"
         ))
         
         await update_message(
