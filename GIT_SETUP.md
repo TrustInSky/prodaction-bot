@@ -121,6 +121,7 @@ alembic upgrade head
 
 # Инициализация системных данных
 python migrations/create_auto_events_system.py
+python migrations/create_notification_types_system.py
 ```
 
 ### 5. Запуск
@@ -199,6 +200,7 @@ cp env.example .env
 mkdir -p data logs temp
 alembic upgrade head
 python migrations/create_auto_events_system.py
+python migrations/create_notification_types_system.py
 python main.py
 ```
 

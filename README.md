@@ -91,6 +91,8 @@ asyncio.run(create_tables())
 
 # Запуск миграций
 python migrations/create_auto_events_system.py
+python migrations/create_notification_types_system.py
+python migrations/create_notification_types_system.py
 python migrations/create_tpoints_activities.py
 ```
 
@@ -259,6 +261,9 @@ PRODACTION/
 ### Доступные миграции
 ```bash
 # Система автоматических событий
+# Система типов уведомлений
+python migrations/create_notification_types_system.py
+
 python migrations/create_auto_events_system.py
 
 
